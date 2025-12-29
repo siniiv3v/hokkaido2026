@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hokkaido Trip | MUJI Premium</title>
+    <title>Hokkaido Trip | Auto-Save Edition</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
@@ -13,18 +14,7 @@
             theme: {
                 extend: {
                     colors: {
-                        muji: {
-                            bg: '#F8F7F5',
-                            text: '#4A4643',    // 暖炭灰 (替代黑)
-                            sub: '#8F8A83',
-                            accent: '#6B655F',  // 亞麻褐
-                            line: '#E8E6E3',
-                            card: '#FFFEFC'
-                        }
-                    },
-                    boxShadow: {
-                        'soft': '0 8px 30px -6px rgba(107, 101, 95, 0.08)',
-                        'inner-soft': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)'
+                        muji: { bg: '#F8F7F2', card: '#FFFFFF', text: '#4A4643', sub: '#8F8A83', accent: '#6B655F', line: '#E8E6E1', red: '#C15F5F' }
                     }
                 }
             }
@@ -32,374 +22,243 @@
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-        
-        body { 
-            font-family: 'Inter', 'Noto Sans TC', sans-serif; 
-            background-color: #F8F7F5; 
-            color: #4A4643; 
-        }
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: #F8F7F2; color: #4A4643; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .tab-active { color: #6B655F !important; position: relative; }
-        .tab-active::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: #6B655F; border-radius: 50%; }
-        
-        /* 登機證鋸齒效果 */
-        .boarding-pass-mask {
-            background: radial-gradient(circle at left center, transparent 8px, #FFFEFC 8.5px) left center / 51% 100% no-repeat,
-                        radial-gradient(circle at right center, transparent 8px, #FFFEFC 8.5px) right center / 51% 100% no-repeat;
-            filter: drop-shadow(0 4px 10px rgba(107, 101, 95, 0.08));
-        }
-
-        .fab { position: fixed; bottom: 30px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: #6B655F; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(107, 101, 95, 0.25); z-index: 40; }
-        
-        input, select, textarea { border: 1px solid #E8E6E3; border-radius: 8px; padding: 12px; background: #FFFEFC; outline: none; width: 100%; color: #4A4643; font-size: 14px; transition: all 0.2s; }
-        input:focus { border-color: #6B655F; box-shadow: 0 0 0 2px rgba(107, 101, 95, 0.1); }
-        
-        .modal-overlay { background: rgba(74, 70, 67, 0.3); backdrop-filter: blur(5px); }
-        
-        /* 雪花動畫 */
-        @keyframes float { 0% { transform: translateY(0px) rotate(0deg); opacity: 0.8; } 50% { transform: translateY(-5px) rotate(180deg); opacity: 1; } 100% { transform: translateY(0px) rotate(360deg); opacity: 0.8; } }
-        .snow-anim { animation: float 6s ease-in-out infinite; display: inline-block; }
+        .date-active { background: #6B655F !important; color: white !important; }
+        .fab { position: fixed; bottom: 30px; right: 24px; width: 60px; height: 60px; border-radius: 50%; background: #6B655F; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(107, 101, 95, 0.3); z-index: 50; }
+        .sortable-ghost { opacity: 0.3; background: #E8E6E1; }
+        .modal-overlay { background: rgba(74, 70, 67, 0.4); backdrop-filter: blur(4px); }
+        input, select, textarea { border: 1px solid #E8E6E1; border-radius: 8px; padding: 12px; background: #FFFFFF; width: 100%; outline: none; }
+        @keyframes slide-up { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .animate-slide-up { animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
     </style>
 </head>
 <body>
 
-<div id="app" class="max-w-md mx-auto min-h-screen relative pb-24 bg-muji-bg">
+<div id="app" class="max-w-md mx-auto min-h-screen relative pb-28">
     
-    <header class="pt-8 pb-4 text-center">
-        <h1 class="text-2xl font-light tracking-[0.2em] text-muji-text flex items-center justify-center">
-            Hokkaido <span class="ml-2 text-muji-sub text-lg snow-anim"><i class="fa-regular fa-snowflake"></i></span>
-        </h1>
+    <header class="bg-muji-bg sticky top-0 z-40 border-b border-muji-line">
+        <div class="pt-6 pb-2 text-center">
+            <h1 class="text-xl font-light tracking-[0.2em]">Hokkaido <span class="text-muji-sub"><i class="fa-regular fa-snowflake"></i></span></h1>
+        </div>
+        
+        <div class="flex overflow-x-auto no-scrollbar py-4 px-4 space-x-3">
+            <div v-for="(day, index) in days" :key="index" 
+                 @click="currentDayIndex = index"
+                 :class="{'date-active': currentDayIndex === index}"
+                 class="flex-shrink-0 w-20 h-24 bg-white rounded-2xl flex flex-col items-center justify-center border border-muji-line transition shadow-sm">
+                <span class="text-[10px] uppercase opacity-70">Day {{ index + 1 }}</span>
+                <span class="text-2xl font-bold my-1">{{ day.dateNum }}</span>
+                <span class="text-[10px] opacity-70">{{ day.week }} {{ day.month }}</span>
+            </div>
+        </div>
     </header>
 
-    <nav class="sticky top-0 z-40 bg-muji-bg/95 backdrop-blur-sm border-b border-muji-line mb-4">
-        <div class="flex justify-around items-center py-3">
-            <button @click="activeTab = 'info'" :class="{'tab-active': activeTab === 'info'}" class="text-muji-sub transition p-2"><i class="fa-solid fa-ticket text-lg"></i></button>
-            <button @click="activeTab = 'schedule'" :class="{'tab-active': activeTab === 'schedule'}" class="text-muji-sub transition p-2"><i class="fa-solid fa-calendar-days text-lg"></i></button>
-            <button @click="activeTab = 'shopping'" :class="{'tab-active': activeTab === 'shopping'}" class="text-muji-sub transition p-2"><i class="fa-solid fa-bag-shopping text-lg"></i></button>
-            <button @click="activeTab = 'spending'" :class="{'tab-active': activeTab === 'spending'}" class="text-muji-sub transition p-2"><i class="fa-solid fa-yen-sign text-lg"></i></button>
-        </div>
+    <nav class="flex justify-around bg-white py-4 border-b border-muji-line sticky top-[168px] z-30 shadow-sm">
+        <button @click="activeTab = 'schedule'" :class="activeTab === 'schedule' ? 'text-muji-accent font-bold' : 'text-muji-sub'"><i class="fa-solid fa-calendar-day mr-2"></i>行程</button>
+        <button @click="activeTab = 'info'" :class="activeTab === 'info' ? 'text-muji-accent font-bold' : 'text-muji-sub'"><i class="fa-solid fa-circle-info mr-2"></i>資訊</button>
     </nav>
 
-    <main class="px-5 space-y-6">
-        
-        <section v-if="activeTab === 'info'" class="space-y-6">
-            
-            <div class="flex items-center justify-between text-muji-sub text-xs px-2">
-                <span><i class="fa-solid fa-location-dot mr-1"></i>Sapporo</span>
-                <span><i class="fa-solid fa-temperature-half mr-1"></i>18°C 晴</span>
-            </div>
-
-            <div v-for="f in flights" @click="editItem('flight', f)" class="boarding-pass-mask w-full h-40 relative group cursor-pointer transition transform hover:scale-[1.01]">
-                <div class="absolute top-0 left-0 w-1/2 h-full p-4 flex flex-col justify-between border-r border-dashed border-muji-line">
-                    <div class="text-[10px] text-muji-sub tracking-widest uppercase">Boarding Pass</div>
-                    <div>
-                        <div class="text-3xl font-bold text-muji-text leading-none">{{ f.from }}</div>
-                        <div class="text-xs text-muji-sub mt-1">{{ f.depTime }}</div>
-                    </div>
-                    <div>
-                        <div class="text-[10px] text-muji-sub uppercase">Flight No.</div>
-                        <div class="font-mono text-sm">{{ f.no }}</div>
-                    </div>
-                </div>
-                <div class="absolute top-0 right-0 w-1/2 h-full p-4 flex flex-col justify-between text-right">
-                    <div class="text-[10px] text-muji-sub tracking-widest uppercase bg-muji-text text-white px-2 py-0.5 rounded-full inline-block ml-auto">Economy</div>
-                    <div>
-                        <div class="text-3xl font-bold text-muji-text leading-none">{{ f.to }}</div>
-                        <div class="text-xs text-muji-sub mt-1">{{ f.arrTime }}</div>
-                    </div>
-                    <div class="flex justify-end gap-3">
-                        <div>
-                            <div class="text-[10px] text-muji-sub uppercase">Gate</div>
-                            <div class="font-mono text-sm">A3</div>
-                        </div>
-                        <div>
-                            <div class="text-[10px] text-muji-sub uppercase">Seat</div>
-                            <div class="font-mono text-sm">12A</div>
+    <main class="p-5">
+        <div v-if="activeTab === 'schedule'" class="space-y-4">
+            <div id="itinerary-list" class="space-y-4">
+                <div v-for="(item, idx) in itineraries[currentDayIndex]" :key="item.id" class="relative">
+                    <div v-if="idx > 0" class="flex items-center px-8 py-3 space-x-4">
+                        <div class="w-px h-8 bg-muji-line border-l border-dashed border-muji-sub opacity-30"></div>
+                        <div class="bg-white border border-muji-line px-3 py-1 rounded-full flex items-center gap-2 text-[10px] text-muji-sub">
+                            <i :class="getTransportIcon(item.transport)"></i>
+                            <span>約 {{ item.travelTime || '20' }} min</span>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div v-for="h in hotels" class="bg-white rounded-2xl overflow-hidden shadow-soft border border-muji-line">
-                <div class="h-32 bg-gray-200 relative">
-                    <img v-if="h.img" :src="h.img" class="w-full h-full object-cover">
-                    <div v-else class="w-full h-full flex items-center justify-center bg-muji-sub/10 text-muji-sub"><i class="fa-regular fa-building text-2xl"></i></div>
-                    <div class="absolute bottom-2 right-2 bg-white/90 backdrop-blur px-2 py-1 text-[10px] rounded font-medium">
-                        分攤: ¥{{ (h.price / travelers.length).toLocaleString() }}/人
-                    </div>
-                </div>
-                <div class="p-4 space-y-3">
-                    <div class="flex justify-between items-start">
-                        <h3 class="font-medium text-lg">{{ h.name }}</h3>
-                        <span class="text-xs bg-muji-bg px-2 py-1 rounded text-muji-sub">Confirmed</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4 text-xs text-muji-sub">
-                        <div>
-                            <p class="uppercase text-[10px] opacity-70">Check-in</p>
-                            <p class="font-medium text-muji-text">{{ h.checkIn }}</p>
-                        </div>
-                        <div>
-                            <p class="uppercase text-[10px] opacity-70">Check-out</p>
-                            <p class="font-medium text-muji-text">{{ h.checkOut }}</p>
-                        </div>
-                    </div>
-                    <div class="pt-3 border-t border-muji-line flex items-center text-xs text-muji-sub">
-                        <i class="fa-solid fa-map-pin mr-2 text-muji-accent"></i>
-                        {{ h.address }}
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-4">
-                <h3 class="text-xs font-bold text-muji-sub uppercase tracking-wider pl-1">Bookings</h3>
-                
-                <div v-for="car in carRentals" class="bg-white p-4 rounded-xl border border-muji-line shadow-soft flex items-start gap-4">
-                    <div class="w-10 h-10 rounded-full bg-muji-bg flex items-center justify-center text-muji-accent flex-shrink-0">
-                        <i class="fa-solid fa-car"></i>
-                    </div>
-                    <div class="flex-1">
-                        <h4 class="text-sm font-medium">{{ car.company }} ({{ car.carType }})</h4>
-                        <div class="mt-2 text-xs text-muji-sub space-y-1">
-                            <div class="flex justify-between"><span>取車: {{ car.pickupTime }}</span> <span>{{ car.pickupLoc }}</span></div>
-                            <div class="flex justify-between"><span>還車: {{ car.dropTime }}</span> <span>{{ car.dropLoc }}</span></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl border border-muji-line shadow-soft overflow-hidden">
-                    <div v-for="(ticket, idx) in tickets" :key="idx" class="p-4 flex items-center justify-between border-b border-muji-line last:border-0 hover:bg-muji-bg transition cursor-pointer">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded bg-red-50 text-red-400 flex items-center justify-center text-xs">PDF</div>
-                            <span class="text-sm">{{ ticket.name }}</span>
-                        </div>
-                        <i class="fa-solid fa-chevron-right text-xs text-muji-line"></i>
-                    </div>
-                    <div @click="triggerUpload('ticket')" class="p-3 text-center text-xs text-muji-accent font-medium cursor-pointer hover:bg-muji-bg bg-muji-bg/30">
-                        + 上傳憑證 (PDF/JPG)
-                    </div>
-                    <input type="file" id="ticketUpload" class="hidden" @change="handleTicketUpload">
-                </div>
-            </div>
-        </section>
-
-        <section v-if="activeTab === 'spending'" class="space-y-6">
-            <div class="bg-white p-6 rounded-[2rem] shadow-soft border border-muji-line text-center relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-full h-1 bg-muji-accent"></div>
-                <p class="text-[10px] text-muji-sub uppercase tracking-widest mb-1">Total Expenses</p>
-                <h2 class="text-4xl font-light text-muji-text">¥ {{ totalSpending.toLocaleString() }}</h2>
-                <div class="mt-4 flex justify-center gap-2">
-                    <span v-for="p in travelers" class="text-[10px] bg-muji-bg px-2 py-1 rounded text-muji-sub">{{ p }}</span>
-                </div>
-            </div>
-
-            <div v-if="settlements.length > 0" class="bg-[#FDFBF7] p-5 rounded-xl border border-dashed border-muji-accent/30">
-                <h3 class="text-xs font-bold text-muji-accent uppercase mb-3 text-center">Settlement Plan (分帳)</h3>
-                <div class="space-y-2">
-                    <div v-for="s in settlements" class="flex items-center justify-between text-xs bg-white p-3 rounded shadow-sm border border-muji-line">
-                        <div class="flex items-center gap-2">
-                            <span class="font-medium text-muji-text">{{ s.from }}</span>
-                            <i class="fa-solid fa-arrow-right text-[10px] text-muji-line"></i>
-                            <span class="font-medium text-muji-text">{{ s.to }}</span>
-                        </div>
-                        <span class="font-bold text-muji-accent">¥ {{ s.amount.toLocaleString() }}</span>
-                    </div>
-                </div>
-                <p class="text-[10px] text-center text-muji-sub mt-2 opacity-70">系統已自動計算多退少補</p>
-            </div>
-
-            <div>
-                <div class="flex justify-between items-center px-1 mb-2">
-                    <span class="text-xs font-bold text-muji-sub">Transactions</span>
-                </div>
-                <div class="space-y-3">
-                    <div v-for="(ex, idx) in expenses" class="bg-white p-4 rounded-xl flex justify-between items-center shadow-soft border border-muji-line">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-full bg-muji-bg flex items-center justify-center text-xs">{{ ex.categoryIcon || '💸' }}</div>
+                    <div @click="editItem(item, idx)" class="bg-white p-5 rounded-3xl border border-muji-line shadow-sm active:scale-[0.98] transition">
+                        <div class="flex justify-between items-start">
                             <div>
-                                <p class="text-xs font-medium">{{ ex.name }}</p>
-                                <p class="text-[10px] text-muji-sub">{{ ex.date }} · <span class="text-muji-accent">{{ ex.payer }}</span> 先付</p>
+                                <span class="text-[9px] px-2 py-0.5 bg-muji-bg rounded-md text-muji-sub font-bold uppercase">{{ item.category }}</span>
+                                <h3 class="text-lg font-bold mt-1">{{ item.name }}</h3>
                             </div>
+                            <button @click.stop="openMap(item.name)" class="w-10 h-10 rounded-full bg-muji-bg flex items-center justify-center text-muji-accent"><i class="fa-solid fa-location-arrow"></i></button>
                         </div>
-                        <div class="text-right">
-                            <p class="text-sm font-medium">¥{{ ex.amount }}</p>
-                            <button @click="removeExpense(idx)" class="text-[10px] text-red-300 hover:text-red-400">✕</button>
+                        <div class="mt-4 grid grid-cols-2 gap-y-2 text-[11px] text-muji-sub">
+                            <div v-if="item.hours"><i class="fa-regular fa-clock mr-2"></i>{{ item.hours }}</div>
+                            <div v-if="item.ticket"><i class="fa-solid fa-ticket mr-2"></i>¥{{ item.ticket }}</div>
                         </div>
                     </div>
                 </div>
             </div>
-        </section>
+            <div v-if="!itineraries[currentDayIndex]?.length" class="text-center py-20 opacity-30">
+                <p>點擊右下角 + 開始編排 Day {{ currentDayIndex + 1 }}</p>
+            </div>
+        </div>
 
-        <section v-if="activeTab === 'schedule'" class="text-center py-20 opacity-50 text-xs">
-            <i class="fa-solid fa-calendar-check text-4xl mb-2 text-muji-line"></i><br>
-            行程表功能請參考前一版本代碼
-        </section>
-        <section v-if="activeTab === 'shopping'" class="text-center py-20 opacity-50 text-xs">
-            <i class="fa-solid fa-bag-shopping text-4xl mb-2 text-muji-line"></i><br>
-            購物清單請參考前一版本代碼
-        </section>
-
-    </main>
-
-    <button @click="openModal" class="fab hover:scale-105 transition"><i class="fa-solid fa-plus"></i></button>
-
-    <div v-if="showModal" class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 modal-overlay" @click.self="showModal = false">
-        <div class="bg-white w-full max-w-sm rounded-[2rem] p-6 space-y-4 animate-slide-up shadow-2xl">
-            <h3 class="text-lg font-medium text-muji-accent mb-4">{{ modalTitle }}</h3>
-
-            <div v-if="activeTab === 'spending'" class="space-y-3">
-                <div class="flex gap-2">
-                    <select v-model="form.payer" class="flex-1">
-                        <option disabled value="">誰付錢?</option>
-                        <option v-for="p in travelers" :value="p">{{ p }}</option>
-                    </select>
-                    <select v-model="form.categoryIcon" class="w-20">
-                        <option value="🍜">食</option><option value="🏨">宿</option><option value="🚗">行</option><option value="🎫">玩</option>
-                    </select>
+        <div v-if="activeTab === 'info'" class="space-y-6">
+            <div class="bg-white p-6 rounded-3xl border border-muji-line shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xs font-bold text-muji-sub uppercase tracking-widest">匯率換算</h3>
+                    <span class="text-[9px] text-muji-sub bg-muji-bg px-2 py-0.5 rounded">Update: {{ lastRateUpdate }}</span>
                 </div>
-                <input v-model="form.name" placeholder="項目名稱 (如: 晚餐)">
-                <input v-model.number="form.amount" type="number" placeholder="金額 (JPY)">
-                <input v-model="form.date" type="date">
-                <div class="text-xs text-muji-sub flex items-center">
-                    <input type="checkbox" checked class="w-4 h-4 mr-2 accent-muji-accent"> 所有人平分
+                <div class="flex items-center space-x-4">
+                    <div class="flex-1">
+                        <p class="text-[10px] text-muji-sub mb-1">日幣 JPY</p>
+                        <input type="number" v-model="jpyInput" class="text-lg font-bold">
+                    </div>
+                    <i class="fa-solid fa-arrow-right-long mt-4 text-muji-line"></i>
+                    <div class="flex-1">
+                        <p class="text-[10px] text-muji-sub mb-1">港幣 HKD</p>
+                        <div class="text-xl font-bold text-muji-accent py-2">≈ {{ (jpyInput * jpyRate).toFixed(2) }}</div>
+                    </div>
                 </div>
             </div>
-
-            <button @click="saveData" class="w-full py-3 rounded-xl bg-muji-accent text-white font-medium shadow-lg hover:opacity-90 transition">
-                儲存
+            <button @click="clearStorage" class="w-full py-3 text-[10px] text-muji-sub opacity-50 hover:opacity-100 transition">
+                重置並清除所有儲存資料
             </button>
         </div>
-    </div>
+    </main>
 
+    <button @click="openAddModal" class="fab"><i class="fa-solid fa-plus text-2xl"></i></button>
+
+    <div v-if="showModal" class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 modal-overlay" @click.self="showModal = false">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-6 space-y-4 animate-slide-up">
+            <h3 class="text-lg font-bold text-center">{{ isEditing ? '編輯行程' : '新增行程' }}</h3>
+            <div class="space-y-3">
+                <select v-model="form.category">
+                    <option>景點</option><option>住宿</option><option>美食</option><option>購物</option><option>其他</option>
+                </select>
+                <input v-model="form.name" placeholder="名稱">
+                <input v-model="form.hours" placeholder="營業時間">
+                <div class="flex gap-2">
+                    <select v-model="form.transport" class="flex-1"><option value="walk">步行</option><option value="car">開車</option><option value="transit">大眾運輸</option></select>
+                    <input v-model="form.travelTime" type="number" placeholder="min" class="w-24">
+                </div>
+                <textarea v-model="form.note" placeholder="備註" rows="2"></textarea>
+            </div>
+            <div class="flex gap-3 pt-4">
+                <button v-if="isEditing" @click="confirmDelete" class="flex-1 py-4 rounded-2xl bg-red-50 text-muji-red font-bold">刪除</button>
+                <button @click="saveData" class="flex-[2] py-4 rounded-2xl bg-muji-accent text-white font-bold">儲存</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-const { createApp, ref, computed } = Vue;
+const { createApp, ref, onMounted, nextTick, watch } = Vue;
 
 createApp({
     setup() {
-        const activeTab = ref('spending'); // 預設打開 Spending 看分帳
+        const activeTab = ref('schedule');
+        const currentDayIndex = ref(0);
         const showModal = ref(false);
-        const modalTitle = ref('');
-        const form = ref({});
+        const isEditing = ref(false);
+        const editIdx = ref(null);
         
-        // 1. 旅伴設定 (用於分帳)
-        const travelers = ref(['我', '旅伴A', '旅伴B']);
+        // --- 持久化資料 ---
+        const jpyInput = ref(1000);
+        const jpyRate = ref(0.051);
+        const lastRateUpdate = ref('Never');
+        const itineraries = ref({ 0: [], 1: [], 2: [], 3: [], 4: [] });
 
-        // 2. 資料
-        const flights = ref([
-            { from: 'HKG', to: 'CTS', depTime: '09:15', arrTime: '15:10', no: 'CX580' }
+        // --- 預設靜態資料 ---
+        const days = ref([
+            { dateNum: '23', week: 'Fri', month: 'JAN' },
+            { dateNum: '24', week: 'Sat', month: 'JAN' },
+            { dateNum: '25', week: 'Sun', month: 'JAN' },
+            { dateNum: '26', week: 'Mon', month: 'JAN' },
+            { dateNum: '27', week: 'Tue', month: 'JAN' }
         ]);
-        
-        const hotels = ref([
-            { 
-                name: 'Solaria Nishitetsu Hotel', 
-                address: '札幌市中央區北4条西6丁目', 
-                checkIn: '15:00', checkOut: '11:00', 
-                price: 45000, 
-                img: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=400' 
+
+        const form = ref({ category: '景點', transport: 'walk' });
+
+        // --- 儲存與讀取邏輯 ---
+        const STORAGE_KEY = 'hokkaido_trip_data';
+
+        const saveToLocal = () => {
+            const dataToSave = {
+                itineraries: itineraries.value,
+                jpyRate: jpyRate.value,
+                lastRateUpdate: lastRateUpdate.value
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+            console.log('Data Saved to LocalStorage');
+        };
+
+        const loadFromLocal = () => {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                itineraries.value = parsed.itineraries || itineraries.value;
+                jpyRate.value = parsed.jpyRate || 0.051;
+                lastRateUpdate.value = parsed.lastRateUpdate || 'Never';
+                console.log('Data Loaded from LocalStorage');
             }
-        ]);
+        };
 
-        const carRentals = ref([
-            { company: 'Toyota Rent a Car', carType: 'Vitz Class', pickupTime: '6/1 16:00', pickupLoc: '新千歲機場店', dropTime: '6/5 14:00', dropLoc: '札幌站前店' }
-        ]);
-
-        const tickets = ref([
-            { name: '札幌電視塔觀景台.pdf', url: '#' },
-            { name: '旭山動物園門票.jpg', url: '#' }
-        ]);
-
-        const expenses = ref([
-            { name: '機場拉麵', amount: 3600, payer: '我', date: '2025-06-01', categoryIcon: '🍜' },
-            { name: '便利商店', amount: 800, payer: '旅伴A', date: '2025-06-01', categoryIcon: '🍜' },
-            { name: '租車費', amount: 25000, payer: '旅伴B', date: '2025-06-01', categoryIcon: '🚗' }
-        ]);
-
-        // 3. 計算屬性
-        const totalSpending = computed(() => expenses.value.reduce((sum, item) => sum + item.amount, 0));
-
-        // 4. 分帳演算法 (Simplified Debt Simplification)
-        const settlements = computed(() => {
-            const balances = {};
-            travelers.value.forEach(p => balances[p] = 0);
-            
-            const splitAmount = totalSpending.value / travelers.value.length; // 假設全部均分
-
-            // 計算每個人已付多少
-            expenses.value.forEach(ex => {
-                if(balances[ex.payer] !== undefined) balances[ex.payer] += ex.amount;
-            });
-
-            // 計算每個人 相對於均分 的差額 (正=多付了要收錢, 負=少付了要給錢)
-            const details = [];
-            for (let p in balances) {
-                details.push({ person: p, diff: balances[p] - splitAmount });
+        const clearStorage = () => {
+            if (confirm('這將永久刪除所有行程，確定嗎？')) {
+                localStorage.removeItem(STORAGE_KEY);
+                location.reload();
             }
+        };
 
-            // 分離債務人與債權人
-            let debtors = details.filter(d => d.diff < -1).sort((a,b) => a.diff - b.diff); // 負越多排前面
-            let creditors = details.filter(d => d.diff > 1).sort((a,b) => b.diff - a.diff); // 正越多排前面
-            
-            const results = [];
-            let i = 0; // debtor index
-            let j = 0; // creditor index
+        // --- 監聽變動自動儲存 ---
+        watch(itineraries, () => saveToLocal(), { deep: true });
+        watch([jpyRate, lastRateUpdate], () => saveToLocal());
 
-            while (i < debtors.length && j < creditors.length) {
-                let debt = Math.abs(debtors[i].diff);
-                let credit = creditors[j].diff;
-                let amount = Math.min(debt, credit);
-
-                if (amount > 0) {
-                    results.push({ from: debtors[i].person, to: creditors[j].person, amount: Math.floor(amount) });
+        // --- API & 其他功能 ---
+        const fetchExchangeRate = async () => {
+            try {
+                const response = await fetch('https://open.er-api.com/v6/latest/JPY');
+                const data = await response.json();
+                if (data.result === 'success') {
+                    jpyRate.value = data.rates.HKD;
+                    const now = new Date();
+                    lastRateUpdate.value = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
                 }
+            } catch (error) { console.error('API Error', error); }
+        };
 
-                debtors[i].diff += amount;
-                creditors[j].diff -= amount;
-
-                if (Math.abs(debtors[i].diff) < 1) i++;
-                if (creditors[j].diff < 1) j++;
+        const initSortable = () => {
+            const el = document.getElementById('itinerary-list');
+            if (el) {
+                Sortable.create(el, {
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    onEnd: (evt) => {
+                        const list = itineraries.value[currentDayIndex.value];
+                        const item = list.splice(evt.oldIndex, 1)[0];
+                        list.splice(evt.newIndex, 0, item);
+                    }
+                });
             }
-            return results;
+        };
+
+        // --- 生命週期 ---
+        onMounted(() => {
+            loadFromLocal();
+            fetchExchangeRate();
+            initSortable();
         });
 
-        // 5. 操作方法
-        const openModal = () => {
-            modalTitle.value = '新增項目';
-            form.value = { date: new Date().toISOString().split('T')[0], payer: '', categoryIcon: '🍜' };
-            showModal.value = true;
-        };
+        watch([activeTab, currentDayIndex], () => {
+            if (activeTab.value === 'schedule') nextTick(() => initSortable());
+        });
 
+        const openMap = (loc) => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc + ' 北海道')}`);
+        const getTransportIcon = (t) => t === 'car' ? 'fa-solid fa-car' : t === 'transit' ? 'fa-solid fa-bus-simple' : 'fa-solid fa-person-walking';
+        const openAddModal = () => { isEditing.value = false; form.value = { id: Date.now(), category: '景點', transport: 'walk', travelTime: 15 }; showModal.value = true; };
+        const editItem = (item, idx) => { isEditing.value = true; editIdx.value = idx; form.value = { ...item }; showModal.value = true; };
         const saveData = () => {
-            if (activeTab.value === 'spending') {
-                if(!form.value.payer) { alert('請選擇付款人'); return; }
-                expenses.value.push({ ...form.value });
-            }
+            if (isEditing.value) itineraries.value[currentDayIndex.value][editIdx.value] = { ...form.value };
+            else itineraries.value[currentDayIndex.value].push({ ...form.value });
             showModal.value = false;
         };
-
-        const removeExpense = (idx) => {
-            if(confirm('刪除此筆記帳？')) expenses.value.splice(idx, 1);
-        };
-
-        const triggerUpload = () => document.getElementById('ticketUpload').click();
-        const handleTicketUpload = (e) => {
-            const file = e.target.files[0];
-            if(file) tickets.value.push({ name: file.name, url: '#' });
-        };
+        const confirmDelete = () => { if (confirm('確定刪除？')) { itineraries.value[currentDayIndex.value].splice(editIdx.value, 1); showModal.value = false; } };
 
         return {
-            activeTab, showModal, modalTitle, form,
-            travelers, flights, hotels, carRentals, tickets, expenses,
-            totalSpending, settlements,
-            openModal, saveData, removeExpense, triggerUpload, handleTicketUpload
+            activeTab, currentDayIndex, days, itineraries, jpyInput, jpyRate, lastRateUpdate, showModal, isEditing, form,
+            openMap, getTransportIcon, openAddModal, editItem, saveData, confirmDelete, clearStorage
         };
     }
 }).mount('#app');
 </script>
-
-<style>
-@keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
-.animate-slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-</style>
 </body>
 </html>
