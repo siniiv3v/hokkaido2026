@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hokkaido Trip | Auto-Save Edition</title>
+    <title>Hokkaido Trip | Premium Edition</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
@@ -14,7 +14,15 @@
             theme: {
                 extend: {
                     colors: {
-                        muji: { bg: '#F8F7F2', card: '#FFFFFF', text: '#4A4643', sub: '#8F8A83', accent: '#6B655F', line: '#E8E6E1', red: '#C15F5F' }
+                        muji: {
+                            bg: '#F8F7F2',      // 暖米
+                            card: '#FFFFFF',
+                            text: '#4A4643',    // 暖木炭
+                            sub: '#8F8A83',     // 亞麻灰
+                            accent: '#6B655F',  // 深褐
+                            line: '#E8E6E1',
+                            red: '#C15F5F'
+                        }
                     }
                 }
             }
@@ -29,8 +37,6 @@
         .sortable-ghost { opacity: 0.3; background: #E8E6E1; }
         .modal-overlay { background: rgba(74, 70, 67, 0.4); backdrop-filter: blur(4px); }
         input, select, textarea { border: 1px solid #E8E6E1; border-radius: 8px; padding: 12px; background: #FFFFFF; width: 100%; outline: none; }
-        @keyframes slide-up { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .animate-slide-up { animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
     </style>
 </head>
 <body>
@@ -54,15 +60,25 @@
         </div>
     </header>
 
-    <nav class="flex justify-around bg-white py-4 border-b border-muji-line sticky top-[168px] z-30 shadow-sm">
+    <nav class="flex justify-around bg-white py-4 border-b border-muji-line sticky top-[168px] z-30">
         <button @click="activeTab = 'schedule'" :class="activeTab === 'schedule' ? 'text-muji-accent font-bold' : 'text-muji-sub'"><i class="fa-solid fa-calendar-day mr-2"></i>行程</button>
         <button @click="activeTab = 'info'" :class="activeTab === 'info' ? 'text-muji-accent font-bold' : 'text-muji-sub'"><i class="fa-solid fa-circle-info mr-2"></i>資訊</button>
     </nav>
 
     <main class="p-5">
+        
         <div v-if="activeTab === 'schedule'" class="space-y-4">
+            <div class="flex items-center px-6 py-2 opacity-50 text-[10px] space-x-3">
+                <i class="fa-solid fa-hotel"></i>
+                <span>從飯店出發</span>
+                <div class="flex-1 border-t border-dashed border-muji-line"></div>
+                <i class="fa-solid fa-car"></i>
+                <span>約 15m</span>
+            </div>
+
             <div id="itinerary-list" class="space-y-4">
-                <div v-for="(item, idx) in itineraries[currentDayIndex]" :key="item.id" class="relative">
+                <div v-for="(item, idx) in itineraries[currentDayIndex]" :key="item.id" :data-id="item.id" class="relative">
+                    
                     <div v-if="idx > 0" class="flex items-center px-8 py-3 space-x-4">
                         <div class="w-px h-8 bg-muji-line border-l border-dashed border-muji-sub opacity-30"></div>
                         <div class="bg-white border border-muji-line px-3 py-1 rounded-full flex items-center gap-2 text-[10px] text-muji-sub">
@@ -71,32 +87,34 @@
                         </div>
                     </div>
 
-                    <div @click="editItem(item, idx)" class="bg-white p-5 rounded-3xl border border-muji-line shadow-sm active:scale-[0.98] transition">
+                    <div @click="editItem(item, idx)" class="bg-white p-5 rounded-3xl border border-muji-line shadow-sm hover:shadow-md transition active:scale-[0.98]">
                         <div class="flex justify-between items-start">
                             <div>
-                                <span class="text-[9px] px-2 py-0.5 bg-muji-bg rounded-md text-muji-sub font-bold uppercase">{{ item.category }}</span>
+                                <span class="text-[9px] px-2 py-0.5 bg-muji-bg rounded-md text-muji-sub font-bold uppercase tracking-wider">{{ item.category }}</span>
                                 <h3 class="text-lg font-bold mt-1">{{ item.name }}</h3>
                             </div>
                             <button @click.stop="openMap(item.name)" class="w-10 h-10 rounded-full bg-muji-bg flex items-center justify-center text-muji-accent"><i class="fa-solid fa-location-arrow"></i></button>
                         </div>
+                        
                         <div class="mt-4 grid grid-cols-2 gap-y-2 text-[11px] text-muji-sub">
                             <div v-if="item.hours"><i class="fa-regular fa-clock mr-2"></i>{{ item.hours }}</div>
                             <div v-if="item.ticket"><i class="fa-solid fa-ticket mr-2"></i>¥{{ item.ticket }}</div>
                         </div>
+                        <p v-if="item.note" class="mt-3 text-xs text-muji-sub italic leading-relaxed">{{ item.note }}</p>
                     </div>
                 </div>
             </div>
+            
             <div v-if="!itineraries[currentDayIndex]?.length" class="text-center py-20 opacity-30">
-                <p>點擊右下角 + 開始編排 Day {{ currentDayIndex + 1 }}</p>
+                <i class="fa-solid fa-mountain-sun text-4xl mb-4"></i>
+                <p>今天還沒有行程</p>
             </div>
         </div>
 
         <div v-if="activeTab === 'info'" class="space-y-6">
+            
             <div class="bg-white p-6 rounded-3xl border border-muji-line shadow-sm">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xs font-bold text-muji-sub uppercase tracking-widest">匯率換算</h3>
-                    <span class="text-[9px] text-muji-sub bg-muji-bg px-2 py-0.5 rounded">Update: {{ lastRateUpdate }}</span>
-                </div>
+                <h3 class="text-xs font-bold text-muji-sub uppercase tracking-widest mb-4">匯率換算 (JPY ➔ HKD)</h3>
                 <div class="flex items-center space-x-4">
                     <div class="flex-1">
                         <p class="text-[10px] text-muji-sub mb-1">日幣 JPY</p>
@@ -109,32 +127,84 @@
                     </div>
                 </div>
             </div>
-            <button @click="clearStorage" class="w-full py-3 text-[10px] text-muji-sub opacity-50 hover:opacity-100 transition">
-                重置並清除所有儲存資料
-            </button>
+
+            <div class="space-y-3">
+                <h3 class="text-xs font-bold text-muji-sub uppercase px-2">航班資訊</h3>
+                <div v-for="f in flights" class="bg-white rounded-3xl border border-muji-line overflow-hidden shadow-sm relative">
+                    <div class="p-5 flex justify-between items-center">
+                        <div class="text-center">
+                            <p class="text-2xl font-bold">{{ f.from }}</p>
+                            <p class="text-[10px] text-muji-sub">{{ f.depTime }}</p>
+                        </div>
+                        <div class="flex-1 px-4 flex flex-col items-center">
+                            <span class="text-[10px] font-mono text-muji-sub">{{ f.no }}</span>
+                            <div class="w-full h-px bg-muji-line my-2 relative">
+                                <i class="fa-solid fa-plane absolute -top-[6px] left-1/2 -translate-x-1/2 text-[10px] text-muji-line"></i>
+                            </div>
+                            <span class="text-[10px] text-muji-sub">{{ f.duration }}</span>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-2xl font-bold">{{ f.to }}</p>
+                            <p class="text-[10px] text-muji-sub">{{ f.arrTime }}</p>
+                        </div>
+                    </div>
+                    <div class="bg-muji-bg px-5 py-2 text-[10px] text-muji-sub border-t border-muji-line text-center">編輯航班資訊 <i class="fa-solid fa-pen ml-1"></i></div>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <h3 class="text-xs font-bold text-muji-sub uppercase px-2">住宿 & 租車</h3>
+                <div v-for="h in hotels" class="bg-white p-5 rounded-3xl border border-muji-line shadow-sm">
+                    <h4 class="font-bold">{{ h.name }}</h4>
+                    <p class="text-xs text-muji-sub mt-2"><i class="fa-solid fa-phone mr-2"></i>{{ h.tel }}</p>
+                    <button @click="openMap(h.address)" class="w-full mt-4 bg-muji-bg py-3 rounded-xl text-xs font-medium flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-map-location-dot"></i> 導航至飯店
+                    </button>
+                </div>
+            </div>
+            
+            <div class="bg-red-50 p-5 rounded-3xl border border-red-100">
+                <h3 class="text-xs font-bold text-muji-red mb-2 italic">緊急醫療 & 支援</h3>
+                <p class="text-[10px] text-muji-red opacity-80 leading-relaxed">警察局: 110 | 急救車: 119<br>外交部領事事務局: +886-800-085-095</p>
+            </div>
         </div>
     </main>
 
     <button @click="openAddModal" class="fab"><i class="fa-solid fa-plus text-2xl"></i></button>
 
     <div v-if="showModal" class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 modal-overlay" @click.self="showModal = false">
-        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-6 space-y-4 animate-slide-up">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-6 space-y-4 animate-slide-up shadow-2xl">
             <h3 class="text-lg font-bold text-center">{{ isEditing ? '編輯行程' : '新增行程' }}</h3>
-            <div class="space-y-3">
-                <select v-model="form.category">
-                    <option>景點</option><option>住宿</option><option>美食</option><option>購物</option><option>其他</option>
-                </select>
-                <input v-model="form.name" placeholder="名稱">
-                <input v-model="form.hours" placeholder="營業時間">
-                <div class="flex gap-2">
-                    <select v-model="form.transport" class="flex-1"><option value="walk">步行</option><option value="car">開車</option><option value="transit">大眾運輸</option></select>
-                    <input v-model="form.travelTime" type="number" placeholder="min" class="w-24">
+            
+            <div class="space-y-3 max-h-[60vh] overflow-y-auto no-scrollbar">
+                <div>
+                    <label class="text-[10px] font-bold text-muji-sub ml-1">分類</label>
+                    <select v-model="form.category">
+                        <option>景點</option><option>住宿</option><option>美食</option><option>購物</option><option>其他</option>
+                    </select>
                 </div>
-                <textarea v-model="form.note" placeholder="備註" rows="2"></textarea>
+                <input v-model="form.name" placeholder="景點/店家名稱">
+                <input v-model="form.hours" placeholder="營業時間 (如 09:00 - 18:00)">
+                <input v-if="form.category === '景點'" v-model="form.ticket" type="number" placeholder="門票金額 (JPY)">
+                <textarea v-model="form.note" placeholder="特色與備註" rows="3"></textarea>
+                
+                <div class="flex gap-2">
+                    <div class="flex-1">
+                        <label class="text-[10px] font-bold text-muji-sub ml-1">交通工具</label>
+                        <select v-model="form.transport">
+                            <option value="walk">步行</option><option value="car">開車</option><option value="transit">大眾運輸</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-[10px] font-bold text-muji-sub ml-1">交通時間 (min)</label>
+                        <input v-model="form.travelTime" type="number" placeholder="20">
+                    </div>
+                </div>
             </div>
+
             <div class="flex gap-3 pt-4">
-                <button v-if="isEditing" @click="confirmDelete" class="flex-1 py-4 rounded-2xl bg-red-50 text-muji-red font-bold">刪除</button>
-                <button @click="saveData" class="flex-[2] py-4 rounded-2xl bg-muji-accent text-white font-bold">儲存</button>
+                <button v-if="isEditing" @click="confirmDelete" class="flex-1 py-4 rounded-2xl bg-red-50 text-muji-red font-bold text-sm">刪除</button>
+                <button @click="saveData" class="flex-[2] py-4 rounded-2xl bg-muji-accent text-white font-bold text-sm shadow-lg shadow-muji-accent/20">儲存</button>
             </div>
         </div>
     </div>
@@ -151,13 +221,10 @@ createApp({
         const isEditing = ref(false);
         const editIdx = ref(null);
         
-        // --- 持久化資料 ---
+        // Data
         const jpyInput = ref(1000);
-        const jpyRate = ref(0.051);
-        const lastRateUpdate = ref('Never');
-        const itineraries = ref({ 0: [], 1: [], 2: [], 3: [], 4: [] });
+        const jpyRate = ref(0.051); // 假設匯率
 
-        // --- 預設靜態資料 ---
         const days = ref([
             { dateNum: '23', week: 'Fri', month: 'JAN' },
             { dateNum: '24', week: 'Sat', month: 'JAN' },
@@ -166,56 +233,65 @@ createApp({
             { dateNum: '27', week: 'Tue', month: 'JAN' }
         ]);
 
+        const itineraries = ref({
+            0: [
+                { id: 1, name: '新千歲機場', category: '景點', hours: '24hrs', ticket: '', note: '抵達後先取車', transport: 'car', travelTime: 40 },
+                { id: 2, name: '札幌電視塔', category: '景點', hours: '09:00-22:00', ticket: '1000', note: '看夜景的好地方', transport: 'walk', travelTime: 10 }
+            ],
+            1: [], 2: [], 3: [], 4: []
+        });
+
+        const flights = ref([
+            { from: 'HKG', to: 'CTS', depTime: '09:15', arrTime: '15:10', duration: '4h 55m', no: 'CX580' }
+        ]);
+
+        const hotels = ref([
+            { name: '札幌索拉利亞西鐵酒店', tel: '+81 11-208-5555', address: '札幌市中央區北4条西6丁目1' }
+        ]);
+
         const form = ref({ category: '景點', transport: 'walk' });
 
-        // --- 儲存與讀取邏輯 ---
-        const STORAGE_KEY = 'hokkaido_trip_data';
-
-        const saveToLocal = () => {
-            const dataToSave = {
-                itineraries: itineraries.value,
-                jpyRate: jpyRate.value,
-                lastRateUpdate: lastRateUpdate.value
-            };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
-            console.log('Data Saved to LocalStorage');
+        // Methods
+        const openMap = (loc) => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc + ' 北海道')}`);
+        
+        const getTransportIcon = (t) => {
+            if(t === 'car') return 'fa-solid fa-car';
+            if(t === 'transit') return 'fa-solid fa-bus-simple';
+            return 'fa-solid fa-person-walking';
         };
 
-        const loadFromLocal = () => {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                itineraries.value = parsed.itineraries || itineraries.value;
-                jpyRate.value = parsed.jpyRate || 0.051;
-                lastRateUpdate.value = parsed.lastRateUpdate || 'Never';
-                console.log('Data Loaded from LocalStorage');
+        const openAddModal = () => {
+            isEditing.value = false;
+            form.value = { id: Date.now(), category: '景點', transport: 'walk', travelTime: 15 };
+            showModal.value = true;
+        };
+
+        const editItem = (item, idx) => {
+            isEditing.value = true;
+            editIdx.value = idx;
+            form.value = { ...item };
+            showModal.value = true;
+        };
+
+        const saveData = () => {
+            if (!itineraries.value[currentDayIndex.value]) itineraries.value[currentDayIndex.value] = [];
+            
+            if (isEditing.value) {
+                itineraries.value[currentDayIndex.value][editIdx.value] = { ...form.value };
+            } else {
+                itineraries.value[currentDayIndex.value].push({ ...form.value });
+            }
+            showModal.value = false;
+        };
+
+        const confirmDelete = () => {
+            if (confirm('確定要刪除這個行程嗎？此動作無法復原。')) {
+                itineraries.value[currentDayIndex.value].splice(editIdx.value, 1);
+                showModal.value = false;
             }
         };
 
-        const clearStorage = () => {
-            if (confirm('這將永久刪除所有行程，確定嗎？')) {
-                localStorage.removeItem(STORAGE_KEY);
-                location.reload();
-            }
-        };
-
-        // --- 監聽變動自動儲存 ---
-        watch(itineraries, () => saveToLocal(), { deep: true });
-        watch([jpyRate, lastRateUpdate], () => saveToLocal());
-
-        // --- API & 其他功能 ---
-        const fetchExchangeRate = async () => {
-            try {
-                const response = await fetch('https://open.er-api.com/v6/latest/JPY');
-                const data = await response.json();
-                if (data.result === 'success') {
-                    jpyRate.value = data.rates.HKD;
-                    const now = new Date();
-                    lastRateUpdate.value = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-                }
-            } catch (error) { console.error('API Error', error); }
-        };
-
+        // Initialize Sortable
         const initSortable = () => {
             const el = document.getElementById('itinerary-list');
             if (el) {
@@ -231,34 +307,26 @@ createApp({
             }
         };
 
-        // --- 生命週期 ---
-        onMounted(() => {
-            loadFromLocal();
-            fetchExchangeRate();
-            initSortable();
-        });
-
         watch([activeTab, currentDayIndex], () => {
-            if (activeTab.value === 'schedule') nextTick(() => initSortable());
+            if (activeTab.value === 'schedule') {
+                nextTick(() => initSortable());
+            }
         });
 
-        const openMap = (loc) => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc + ' 北海道')}`);
-        const getTransportIcon = (t) => t === 'car' ? 'fa-solid fa-car' : t === 'transit' ? 'fa-solid fa-bus-simple' : 'fa-solid fa-person-walking';
-        const openAddModal = () => { isEditing.value = false; form.value = { id: Date.now(), category: '景點', transport: 'walk', travelTime: 15 }; showModal.value = true; };
-        const editItem = (item, idx) => { isEditing.value = true; editIdx.value = idx; form.value = { ...item }; showModal.value = true; };
-        const saveData = () => {
-            if (isEditing.value) itineraries.value[currentDayIndex.value][editIdx.value] = { ...form.value };
-            else itineraries.value[currentDayIndex.value].push({ ...form.value });
-            showModal.value = false;
-        };
-        const confirmDelete = () => { if (confirm('確定刪除？')) { itineraries.value[currentDayIndex.value].splice(editIdx.value, 1); showModal.value = false; } };
+        onMounted(() => initSortable());
 
         return {
-            activeTab, currentDayIndex, days, itineraries, jpyInput, jpyRate, lastRateUpdate, showModal, isEditing, form,
-            openMap, getTransportIcon, openAddModal, editItem, saveData, confirmDelete, clearStorage
+            activeTab, currentDayIndex, days, itineraries, flights, hotels,
+            jpyInput, jpyRate, showModal, isEditing, form,
+            openMap, getTransportIcon, openAddModal, editItem, saveData, confirmDelete
         };
     }
 }).mount('#app');
 </script>
+
+<style>
+@keyframes slide-up { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.animate-slide-up { animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+</style>
 </body>
 </html>
