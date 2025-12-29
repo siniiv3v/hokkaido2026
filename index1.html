@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hokkaido Trip | MUJI Premium</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        muji: {
+                            bg: '#F8F7F5',
+                            text: '#4A4643',    // 暖炭灰 (替代黑)
+                            sub: '#8F8A83',
+                            accent: '#6B655F',  // 亞麻褐
+                            line: '#E8E6E3',
+                            card: '#FFFEFC'
+                        }
+                    },
+                    boxShadow: {
+                        'soft': '0 8px 30px -6px rgba(107, 101, 95, 0.08)',
+                        'inner-soft': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+        
+        body { 
+            font-family: 'Inter', 'Noto Sans TC', sans-serif; 
+            background-color: #F8F7F5; 
+            color: #4A4643; 
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .tab-active { color: #6B655F !important; position: relative; }
+        .tab-active::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: #6B655F; border-radius: 50%; }
+        
+        /* 登機證鋸齒效果 */
+        .boarding-pass-mask {
+            background: radial-gradient(circle at left center, transparent 8px, #FFFEFC 8.5px) left center / 51% 100% no-repeat,
+                        radial-gradient(circle at right center, transparent 8px, #FFFEFC 8.5px) right center / 51% 100% no-repeat;
+            filter: drop-shadow(0 4px 10px rgba(107, 101, 95, 0.08));
+        }
+
+        .fab { position: fixed; bottom: 30px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: #6B655F; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(107, 101, 95, 0.25); z-index: 40; }
+        
+        input, select, textarea { border: 1px solid #E8E6E3; border-radius: 8px; padding: 12px; background: #FFFEFC; outline: none; width: 100%; color: #4A4643; font-size: 14px; transition: all 0.2s; }
+        input:focus { border-color: #6B655F; box-shadow: 0 0 0 2px rgba(107, 101, 95, 0.1); }
+        
+        .modal-overlay { background: rgba(74, 70, 67, 0.3); backdrop-filter: blur(5px); }
+        
+        /* 雪花動畫 */
+        @keyframes float { 0% { transform: translateY(0px) rotate(0deg); opacity: 0.8; } 50% { transform: translateY(-5px) rotate(180deg); opacity: 1; } 100% { transform: translateY(0px) rotate(360deg); opacity: 0.8; } }
+        .snow-anim { animation: float 6s ease-in-out infinite; display: inline-block; }
+    </style>
+</head>
+<body>
+
+<div id="app" class="max-w-md mx-auto min-h-screen relative pb-24 bg-muji-bg">
+    
+    <header class="pt-8 pb-4 text-center">
+        <h1 class="text-2xl font-light tracking-[0.2em] text-muji-text flex items-center justify-center">
+            Hokkaido <span class="ml-2 text-muji-sub text-lg snow-anim"><i class="fa-regular fa-snowflake"></i></span>
+        </h1>
+    </header>
+
+    <nav class="sticky top-0 z-40 bg-muji-bg/95 backdrop-blur-sm border-b border-muji-line mb-4">
+        <div class="flex justify-around items-center py-3">
+            <button @click="activeTab = 'info'" :class="{'tab-active': activeTab === 'info'}" class="text-muji-sub transition p-2"><i class="fa-solid fa-ticket text-lg"></i></button>
+            <button @click="activeTab = 'schedule'" :class="{'tab-active': activeTab === 'schedule'}" class="text-muji-sub transition p-2"><i class="fa-solid fa-calendar-days text-lg"></i></button>
+            <button @click="activeTab = 'shopping'" :class="{'tab-active': activeTab === 'shopping'}" class="text-muji-sub transition p-2"><i class="fa-solid fa-bag-shopping text-lg"></i></button>
+            <button @click="activeTab = 'spending'" :class="{'tab-active': activeTab === 'spending'}" class="text-muji-sub transition p-2"><i class="fa-solid fa-yen-sign text-lg"></i></button>
+        </div>
+    </nav>
+
+    <main class="px-5 space-y-6">
+        
+        <section v-if="activeTab === 'info'" class="space-y-6">
+            
+            <div class="flex items-center justify-between text-muji-sub text-xs px-2">
+                <span><i class="fa-solid fa-location-dot mr-1"></i>Sapporo</span>
+                <span><i class="fa-solid fa-temperature-half mr-1"></i>18°C 晴</span>
+            </div>
+
+            <div v-for="f in flights" @click="editItem('flight', f)" class="boarding-pass-mask w-full h-40 relative group cursor-pointer transition transform hover:scale-[1.01]">
+                <div class="absolute top-0 left-0 w-1/2 h-full p-4 flex flex-col justify-between border-r border-dashed border-muji-line">
+                    <div class="text-[10px] text-muji-sub tracking-widest uppercase">Boarding Pass</div>
+                    <div>
+                        <div class="text-3xl font-bold text-muji-text leading-none">{{ f.from }}</div>
+                        <div class="text-xs text-muji-sub mt-1">{{ f.depTime }}</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-muji-sub uppercase">Flight No.</div>
+                        <div class="font-mono text-sm">{{ f.no }}</div>
+                    </div>
+                </div>
+                <div class="absolute top-0 right-0 w-1/2 h-full p-4 flex flex-col justify-between text-right">
+                    <div class="text-[10px] text-muji-sub tracking-widest uppercase bg-muji-text text-white px-2 py-0.5 rounded-full inline-block ml-auto">Economy</div>
+                    <div>
+                        <div class="text-3xl font-bold text-muji-text leading-none">{{ f.to }}</div>
+                        <div class="text-xs text-muji-sub mt-1">{{ f.arrTime }}</div>
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <div>
+                            <div class="text-[10px] text-muji-sub uppercase">Gate</div>
+                            <div class="font-mono text-sm">A3</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-muji-sub uppercase">Seat</div>
+                            <div class="font-mono text-sm">12A</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-for="h in hotels" class="bg-white rounded-2xl overflow-hidden shadow-soft border border-muji-line">
+                <div class="h-32 bg-gray-200 relative">
+                    <img v-if="h.img" :src="h.img" class="w-full h-full object-cover">
+                    <div v-else class="w-full h-full flex items-center justify-center bg-muji-sub/10 text-muji-sub"><i class="fa-regular fa-building text-2xl"></i></div>
+                    <div class="absolute bottom-2 right-2 bg-white/90 backdrop-blur px-2 py-1 text-[10px] rounded font-medium">
+                        分攤: ¥{{ (h.price / travelers.length).toLocaleString() }}/人
+                    </div>
+                </div>
+                <div class="p-4 space-y-3">
+                    <div class="flex justify-between items-start">
+                        <h3 class="font-medium text-lg">{{ h.name }}</h3>
+                        <span class="text-xs bg-muji-bg px-2 py-1 rounded text-muji-sub">Confirmed</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 text-xs text-muji-sub">
+                        <div>
+                            <p class="uppercase text-[10px] opacity-70">Check-in</p>
+                            <p class="font-medium text-muji-text">{{ h.checkIn }}</p>
+                        </div>
+                        <div>
+                            <p class="uppercase text-[10px] opacity-70">Check-out</p>
+                            <p class="font-medium text-muji-text">{{ h.checkOut }}</p>
+                        </div>
+                    </div>
+                    <div class="pt-3 border-t border-muji-line flex items-center text-xs text-muji-sub">
+                        <i class="fa-solid fa-map-pin mr-2 text-muji-accent"></i>
+                        {{ h.address }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <h3 class="text-xs font-bold text-muji-sub uppercase tracking-wider pl-1">Bookings</h3>
+                
+                <div v-for="car in carRentals" class="bg-white p-4 rounded-xl border border-muji-line shadow-soft flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-full bg-muji-bg flex items-center justify-center text-muji-accent flex-shrink-0">
+                        <i class="fa-solid fa-car"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-sm font-medium">{{ car.company }} ({{ car.carType }})</h4>
+                        <div class="mt-2 text-xs text-muji-sub space-y-1">
+                            <div class="flex justify-between"><span>取車: {{ car.pickupTime }}</span> <span>{{ car.pickupLoc }}</span></div>
+                            <div class="flex justify-between"><span>還車: {{ car.dropTime }}</span> <span>{{ car.dropLoc }}</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-muji-line shadow-soft overflow-hidden">
+                    <div v-for="(ticket, idx) in tickets" :key="idx" class="p-4 flex items-center justify-between border-b border-muji-line last:border-0 hover:bg-muji-bg transition cursor-pointer">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded bg-red-50 text-red-400 flex items-center justify-center text-xs">PDF</div>
+                            <span class="text-sm">{{ ticket.name }}</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-muji-line"></i>
+                    </div>
+                    <div @click="triggerUpload('ticket')" class="p-3 text-center text-xs text-muji-accent font-medium cursor-pointer hover:bg-muji-bg bg-muji-bg/30">
+                        + 上傳憑證 (PDF/JPG)
+                    </div>
+                    <input type="file" id="ticketUpload" class="hidden" @change="handleTicketUpload">
+                </div>
+            </div>
+        </section>
+
+        <section v-if="activeTab === 'spending'" class="space-y-6">
+            <div class="bg-white p-6 rounded-[2rem] shadow-soft border border-muji-line text-center relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-muji-accent"></div>
+                <p class="text-[10px] text-muji-sub uppercase tracking-widest mb-1">Total Expenses</p>
+                <h2 class="text-4xl font-light text-muji-text">¥ {{ totalSpending.toLocaleString() }}</h2>
+                <div class="mt-4 flex justify-center gap-2">
+                    <span v-for="p in travelers" class="text-[10px] bg-muji-bg px-2 py-1 rounded text-muji-sub">{{ p }}</span>
+                </div>
+            </div>
+
+            <div v-if="settlements.length > 0" class="bg-[#FDFBF7] p-5 rounded-xl border border-dashed border-muji-accent/30">
+                <h3 class="text-xs font-bold text-muji-accent uppercase mb-3 text-center">Settlement Plan (分帳)</h3>
+                <div class="space-y-2">
+                    <div v-for="s in settlements" class="flex items-center justify-between text-xs bg-white p-3 rounded shadow-sm border border-muji-line">
+                        <div class="flex items-center gap-2">
+                            <span class="font-medium text-muji-text">{{ s.from }}</span>
+                            <i class="fa-solid fa-arrow-right text-[10px] text-muji-line"></i>
+                            <span class="font-medium text-muji-text">{{ s.to }}</span>
+                        </div>
+                        <span class="font-bold text-muji-accent">¥ {{ s.amount.toLocaleString() }}</span>
+                    </div>
+                </div>
+                <p class="text-[10px] text-center text-muji-sub mt-2 opacity-70">系統已自動計算多退少補</p>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-center px-1 mb-2">
+                    <span class="text-xs font-bold text-muji-sub">Transactions</span>
+                </div>
+                <div class="space-y-3">
+                    <div v-for="(ex, idx) in expenses" class="bg-white p-4 rounded-xl flex justify-between items-center shadow-soft border border-muji-line">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-muji-bg flex items-center justify-center text-xs">{{ ex.categoryIcon || '💸' }}</div>
+                            <div>
+                                <p class="text-xs font-medium">{{ ex.name }}</p>
+                                <p class="text-[10px] text-muji-sub">{{ ex.date }} · <span class="text-muji-accent">{{ ex.payer }}</span> 先付</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-medium">¥{{ ex.amount }}</p>
+                            <button @click="removeExpense(idx)" class="text-[10px] text-red-300 hover:text-red-400">✕</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section v-if="activeTab === 'schedule'" class="text-center py-20 opacity-50 text-xs">
+            <i class="fa-solid fa-calendar-check text-4xl mb-2 text-muji-line"></i><br>
+            行程表功能請參考前一版本代碼
+        </section>
+        <section v-if="activeTab === 'shopping'" class="text-center py-20 opacity-50 text-xs">
+            <i class="fa-solid fa-bag-shopping text-4xl mb-2 text-muji-line"></i><br>
+            購物清單請參考前一版本代碼
+        </section>
+
+    </main>
+
+    <button @click="openModal" class="fab hover:scale-105 transition"><i class="fa-solid fa-plus"></i></button>
+
+    <div v-if="showModal" class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 modal-overlay" @click.self="showModal = false">
+        <div class="bg-white w-full max-w-sm rounded-[2rem] p-6 space-y-4 animate-slide-up shadow-2xl">
+            <h3 class="text-lg font-medium text-muji-accent mb-4">{{ modalTitle }}</h3>
+
+            <div v-if="activeTab === 'spending'" class="space-y-3">
+                <div class="flex gap-2">
+                    <select v-model="form.payer" class="flex-1">
+                        <option disabled value="">誰付錢?</option>
+                        <option v-for="p in travelers" :value="p">{{ p }}</option>
+                    </select>
+                    <select v-model="form.categoryIcon" class="w-20">
+                        <option value="🍜">食</option><option value="🏨">宿</option><option value="🚗">行</option><option value="🎫">玩</option>
+                    </select>
+                </div>
+                <input v-model="form.name" placeholder="項目名稱 (如: 晚餐)">
+                <input v-model.number="form.amount" type="number" placeholder="金額 (JPY)">
+                <input v-model="form.date" type="date">
+                <div class="text-xs text-muji-sub flex items-center">
+                    <input type="checkbox" checked class="w-4 h-4 mr-2 accent-muji-accent"> 所有人平分
+                </div>
+            </div>
+
+            <button @click="saveData" class="w-full py-3 rounded-xl bg-muji-accent text-white font-medium shadow-lg hover:opacity-90 transition">
+                儲存
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const { createApp, ref, computed } = Vue;
+
+createApp({
+    setup() {
+        const activeTab = ref('spending'); // 預設打開 Spending 看分帳
+        const showModal = ref(false);
+        const modalTitle = ref('');
+        const form = ref({});
+        
+        // 1. 旅伴設定 (用於分帳)
+        const travelers = ref(['我', '旅伴A', '旅伴B']);
+
+        // 2. 資料
+        const flights = ref([
+            { from: 'HKG', to: 'CTS', depTime: '09:15', arrTime: '15:10', no: 'CX580' }
+        ]);
+        
+        const hotels = ref([
+            { 
+                name: 'Solaria Nishitetsu Hotel', 
+                address: '札幌市中央區北4条西6丁目', 
+                checkIn: '15:00', checkOut: '11:00', 
+                price: 45000, 
+                img: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=400' 
+            }
+        ]);
+
+        const carRentals = ref([
+            { company: 'Toyota Rent a Car', carType: 'Vitz Class', pickupTime: '6/1 16:00', pickupLoc: '新千歲機場店', dropTime: '6/5 14:00', dropLoc: '札幌站前店' }
+        ]);
+
+        const tickets = ref([
+            { name: '札幌電視塔觀景台.pdf', url: '#' },
+            { name: '旭山動物園門票.jpg', url: '#' }
+        ]);
+
+        const expenses = ref([
+            { name: '機場拉麵', amount: 3600, payer: '我', date: '2025-06-01', categoryIcon: '🍜' },
+            { name: '便利商店', amount: 800, payer: '旅伴A', date: '2025-06-01', categoryIcon: '🍜' },
+            { name: '租車費', amount: 25000, payer: '旅伴B', date: '2025-06-01', categoryIcon: '🚗' }
+        ]);
+
+        // 3. 計算屬性
+        const totalSpending = computed(() => expenses.value.reduce((sum, item) => sum + item.amount, 0));
+
+        // 4. 分帳演算法 (Simplified Debt Simplification)
+        const settlements = computed(() => {
+            const balances = {};
+            travelers.value.forEach(p => balances[p] = 0);
+            
+            const splitAmount = totalSpending.value / travelers.value.length; // 假設全部均分
+
+            // 計算每個人已付多少
+            expenses.value.forEach(ex => {
+                if(balances[ex.payer] !== undefined) balances[ex.payer] += ex.amount;
+            });
+
+            // 計算每個人 相對於均分 的差額 (正=多付了要收錢, 負=少付了要給錢)
+            const details = [];
+            for (let p in balances) {
+                details.push({ person: p, diff: balances[p] - splitAmount });
+            }
+
+            // 分離債務人與債權人
+            let debtors = details.filter(d => d.diff < -1).sort((a,b) => a.diff - b.diff); // 負越多排前面
+            let creditors = details.filter(d => d.diff > 1).sort((a,b) => b.diff - a.diff); // 正越多排前面
+            
+            const results = [];
+            let i = 0; // debtor index
+            let j = 0; // creditor index
+
+            while (i < debtors.length && j < creditors.length) {
+                let debt = Math.abs(debtors[i].diff);
+                let credit = creditors[j].diff;
+                let amount = Math.min(debt, credit);
+
+                if (amount > 0) {
+                    results.push({ from: debtors[i].person, to: creditors[j].person, amount: Math.floor(amount) });
+                }
+
+                debtors[i].diff += amount;
+                creditors[j].diff -= amount;
+
+                if (Math.abs(debtors[i].diff) < 1) i++;
+                if (creditors[j].diff < 1) j++;
+            }
+            return results;
+        });
+
+        // 5. 操作方法
+        const openModal = () => {
+            modalTitle.value = '新增項目';
+            form.value = { date: new Date().toISOString().split('T')[0], payer: '', categoryIcon: '🍜' };
+            showModal.value = true;
+        };
+
+        const saveData = () => {
+            if (activeTab.value === 'spending') {
+                if(!form.value.payer) { alert('請選擇付款人'); return; }
+                expenses.value.push({ ...form.value });
+            }
+            showModal.value = false;
+        };
+
+        const removeExpense = (idx) => {
+            if(confirm('刪除此筆記帳？')) expenses.value.splice(idx, 1);
+        };
+
+        const triggerUpload = () => document.getElementById('ticketUpload').click();
+        const handleTicketUpload = (e) => {
+            const file = e.target.files[0];
+            if(file) tickets.value.push({ name: file.name, url: '#' });
+        };
+
+        return {
+            activeTab, showModal, modalTitle, form,
+            travelers, flights, hotels, carRentals, tickets, expenses,
+            totalSpending, settlements,
+            openModal, saveData, removeExpense, triggerUpload, handleTicketUpload
+        };
+    }
+}).mount('#app');
+</script>
+
+<style>
+@keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.animate-slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+</style>
+</body>
+</html>
