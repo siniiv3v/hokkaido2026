@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hokkaido Trip Planner</title>
+    <title>Hokkaido Go! Travel Partner</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
@@ -20,136 +21,193 @@
         }
     </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #F8F7F2; color: #4A4643; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: #F8F7F2; color: #4A4643; overflow-x: hidden; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .tab-active { color: #6B655F !important; border-bottom: 2px solid #6B655F; }
-        input, select, textarea { border: 1px solid #E8E6E1; border-radius: 12px; padding: 10px; width: 100%; outline: none; background: white; }
-        .fab { position: fixed; bottom: 30px; right: 24px; width: 56px; height: 56px; border-radius: 28px; background: #6B655F; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); z-index: 50; }
-        .modal-overlay { background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); }
-        .animate-up { animation: slideUp 0.3s ease-out; }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .date-active { background: #6B655F !important; color: white !important; transform: scale(1.05); }
+        .boarding-pass { background: white; border-radius: 20px; position: relative; border: 1px solid #E8E6E1; }
+        .boarding-pass::after { content: ''; position: absolute; right: 28%; top: 0; bottom: 0; border-left: 2px dashed #E8E6E1; }
+        .fab { position: fixed; bottom: 30px; right: 24px; width: 60px; height: 60px; border-radius: 50%; background: #6B655F; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 50; }
+        input, select, textarea { border: 1px solid #E8E6E1; border-radius: 12px; padding: 12px; background: white; width: 100%; outline: none; }
+        .sortable-ghost { opacity: 0.3; background: #E8E6E1; }
     </style>
 </head>
 <body>
 
-<div id="app" class="max-w-md mx-auto min-h-screen relative pb-24">
+<div id="app" class="max-w-md mx-auto min-h-screen relative pb-10">
     
-    <header class="bg-white sticky top-0 z-40 border-b border-muji-line shadow-sm">
-        <div class="flex justify-around items-center pt-3">
-            <button v-for="t in tabs" @click="activeTab = t.id" :class="{'tab-active': activeTab === t.id}" class="pb-2 flex flex-col items-center flex-1 text-muji-sub">
-                <i :class="t.icon" class="mb-1"></i>
-                <span class="text-[10px]">{{ t.name }}</span>
+    <header class="bg-white sticky top-0 z-50 border-b border-muji-line shadow-sm">
+        <div class="flex justify-around items-center px-2 pt-4">
+            <button v-for="tab in mainTabs" @click="activeTab = tab.id" :class="{'tab-active': activeTab === tab.id}" class="pb-3 flex flex-col items-center flex-1 text-muji-sub transition-all">
+                <i :class="tab.icon" class="text-lg mb-1"></i>
+                <span class="text-[10px] font-bold">{{ tab.name }}</span>
             </button>
         </div>
     </header>
 
-    <main class="p-4">
+    <main class="p-4 pt-6">
         
-        <section v-if="activeTab === 'shopping'" class="space-y-4">
-            <h2 class="text-sm font-bold text-muji-sub tracking-widest"><i class="fa-solid fa-cart-shopping mr-2"></i>WISH LIST</h2>
-            <div class="grid grid-cols-2 gap-4">
-                <div v-for="(item, idx) in shoppingList" :key="idx" class="bg-white rounded-2xl overflow-hidden border border-muji-line shadow-sm">
-                    <div class="h-32 bg-muji-bg relative">
-                        <img v-if="item.image" :src="item.image" class="w-full h-full object-cover">
-                        <div v-else class="w-full h-full flex items-center justify-center text-muji-line"><i class="fa-solid fa-camera text-2xl"></i></div>
-                        <button @click="deleteShopping(idx)" class="absolute top-2 right-2 bg-white/80 w-6 h-6 rounded-full text-[10px] text-muji-red">✕</button>
-                    </div>
-                    <div class="p-3 text-sm font-medium">{{ item.name }}</div>
-                </div>
-            </div>
-            <button @click="openModal('shopping')" class="fab"><i class="fa-solid fa-plus"></i></button>
-        </section>
-
-        <section v-if="activeTab === 'expense'" class="space-y-4">
-            <div class="bg-muji-accent p-6 rounded-[2rem] text-white shadow-lg">
-                <p class="text-[10px] opacity-70 mb-1 tracking-widest uppercase">Total Spending</p>
-                <div class="text-3xl font-bold">¥ {{ totalJPY.toLocaleString() }}</div>
-                <div class="text-sm opacity-90 mt-1">≈ HK$ {{ (totalJPY * jpyRate).toFixed(2) }}</div>
-            </div>
-
-            <div v-if="settlements.length" class="bg-white p-4 rounded-2xl border border-dashed border-muji-accent/50 text-[11px]">
-                <h3 class="font-bold text-muji-sub mb-2">分帳建議</h3>
-                <div v-for="s in settlements" class="flex items-center gap-2 py-1">
-                    <span class="text-muji-accent font-medium">{{ s.from }}</span>
-                    <i class="fa-solid fa-arrow-right-long opacity-30"></i>
-                    <span class="font-medium">{{ s.to }}</span>
-                    <span class="ml-auto font-bold">¥ {{ s.amount.toLocaleString() }}</span>
+        <div v-if="activeTab === 'schedule'" class="space-y-4">
+            <div class="flex overflow-x-auto no-scrollbar space-x-3 py-2 mb-4">
+                <div v-for="(day, idx) in days" @click="currentDay = idx" :class="{'date-active shadow-lg': currentDay === idx}" class="flex-shrink-0 w-20 h-24 bg-white rounded-2xl flex flex-col items-center justify-center border border-muji-line transition-all duration-300">
+                    <span class="text-[10px] uppercase opacity-70">Day {{idx + 1}}</span>
+                    <span class="text-2xl font-bold my-1">{{day.date}}</span>
+                    <span class="text-[10px] opacity-70">{{day.week}}</span>
                 </div>
             </div>
 
-            <div class="space-y-3">
-                <div v-for="(ex, idx) in expenses" :key="idx" @click="editExpense(idx)" class="bg-white p-4 rounded-2xl border border-muji-line flex justify-between items-center">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-muji-bg flex items-center justify-center text-lg">{{ getCatIcon(ex.category) }}</div>
-                        <div>
-                            <p class="text-sm font-bold">{{ ex.name }}</p>
-                            <p class="text-[10px] text-muji-sub">{{ ex.date }} · {{ ex.payer }} 付</p>
+            <div id="itinerary-list" class="space-y-4">
+                <div v-for="(item, idx) in itineraries[currentDay]" :key="item.id" class="relative">
+                    <div v-if="idx > 0" class="flex items-center px-8 py-4 space-x-4">
+                        <div class="w-px h-8 border-l border-dashed border-muji-sub opacity-40"></div>
+                        <div class="bg-white border border-muji-line px-3 py-1 rounded-full flex items-center gap-2 text-[10px] text-muji-sub shadow-sm">
+                            <i :class="getTransportIcon(item.transport)"></i>
+                            <span>{{ item.travelTime || '15' }}m</span>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-sm font-bold text-muji-accent">¥ {{ ex.amount }}</p>
-                        <p class="text-[9px] text-muji-sub">{{ ex.payMethod }}</p>
+
+                    <div @click="editItem('schedule', item, idx)" class="bg-white p-5 rounded-[2rem] border border-muji-line shadow-sm active:scale-[0.98] transition">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <span class="text-[9px] px-2 py-0.5 bg-muji-bg rounded-md text-muji-sub font-bold uppercase tracking-widest">{{item.category}}</span>
+                                <h3 class="text-lg font-bold mt-1 text-muji-text">{{item.name}}</h3>
+                            </div>
+                            <button @click.stop="openGoogleMap(item.name)" class="w-10 h-10 rounded-full bg-muji-bg flex items-center justify-center text-muji-accent"><i class="fa-solid fa-location-arrow"></i></button>
+                        </div>
+                        <div class="mt-4 flex gap-4 text-[11px] text-muji-sub">
+                            <span v-if="item.hours"><i class="fa-regular fa-clock mr-1"></i> {{item.hours}}</span>
+                            <span v-if="item.ticket"><i class="fa-solid fa-ticket mr-1"></i> ¥{{item.ticket}}</span>
+                        </div>
                     </div>
                 </div>
             </div>
-            <button @click="openModal('expense')" class="fab"><i class="fa-solid fa-plus"></i></button>
-        </section>
+            <button @click="addItem('schedule')" class="fab"><i class="fa-solid fa-plus text-2xl"></i></button>
+        </div>
 
-        <div v-if="activeTab === 'schedule' || activeTab === 'info'" class="text-center py-20 opacity-30 italic text-sm">行程與資訊頁面功能維持先前版本</div>
+        <div v-if="activeTab === 'info'" class="space-y-8">
+            <section class="space-y-4">
+                <div class="flex justify-between items-end px-2">
+                    <h2 class="text-xs font-bold tracking-[0.2em] text-muji-sub uppercase">Flight Boarding</h2>
+                    <button @click="addItem('flight')" class="text-muji-accent"><i class="fa-solid fa-circle-plus text-xl"></i></button>
+                </div>
+                <div v-for="(f, idx) in flights" @click="editItem('flight', f, idx)" class="boarding-pass p-5 flex">
+                    <div class="w-[72%] pr-4">
+                        <div class="flex justify-between text-[9px] font-mono text-muji-sub mb-3"><span>{{f.code}}</span><span>NON-STOP</span></div>
+                        <div class="flex justify-between items-center">
+                            <div><p class="text-2xl font-black">{{f.from}}</p><p class="text-[10px]">{{f.depTime}}</p></div>
+                            <i class="fa-solid fa-plane text-muji-line text-xs"></i>
+                            <div class="text-right"><p class="text-2xl font-black">{{f.to}}</p><p class="text-[10px]">{{f.arrTime}}</p></div>
+                        </div>
+                    </div>
+                    <div class="w-[28%] flex flex-col justify-center items-center border-l border-muji-line">
+                        <i class="fa-solid fa-qrcode text-3xl opacity-10"></i>
+                    </div>
+                </div>
+            </section>
+
+            <section class="space-y-4">
+                <div class="flex justify-between items-end px-2">
+                    <h2 class="text-xs font-bold tracking-[0.2em] text-muji-sub uppercase">Accommodations</h2>
+                    <button @click="addItem('hotel')" class="text-muji-accent"><i class="fa-solid fa-circle-plus text-xl"></i></button>
+                </div>
+                <div v-for="(h, idx) in hotels" @click="editItem('hotel', h, idx)" class="bg-white rounded-[2rem] border border-muji-line overflow-hidden shadow-sm">
+                    <div class="p-5">
+                        <h3 class="font-bold text-lg">{{h.name}}</h3>
+                        <p class="text-[11px] text-muji-sub mt-1"><i class="fa-solid fa-location-dot mr-1"></i>{{h.address}}</p>
+                        <div class="grid grid-cols-2 gap-4 mt-4 py-3 border-t border-muji-line">
+                            <div class="text-[10px]">IN: <b class="block text-xs text-muji-accent">{{h.checkin}}</b></div>
+                            <div class="text-[10px]">OUT: <b class="block text-xs text-muji-accent">{{h.checkout}}</b></div>
+                        </div>
+                        <button @click.stop="openGoogleMap(h.address)" class="w-full bg-muji-bg py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest text-muji-accent">Start Navigation</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div v-if="activeTab === 'shopping'" class="space-y-4">
+            <h2 class="text-xs font-bold tracking-[0.2em] text-muji-sub uppercase px-2">Shopping Wishlist</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div v-for="(item, idx) in shoppingList" class="bg-white rounded-3xl border border-muji-line overflow-hidden shadow-sm">
+                    <div class="h-32 bg-muji-bg">
+                        <img v-if="item.image" :src="item.image" class="w-full h-full object-cover">
+                        <div v-else class="w-full h-full flex items-center justify-center opacity-20"><i class="fa-solid fa-camera text-2xl"></i></div>
+                    </div>
+                    <div class="p-3 flex justify-between items-center">
+                        <span class="text-xs font-medium truncate">{{item.name}}</span>
+                        <button @click="deleteShopping(idx)" class="text-muji-line hover:text-muji-red"><i class="fa-solid fa-circle-xmark"></i></button>
+                    </div>
+                </div>
+            </div>
+            <button @click="openModal('shopping')" class="fab"><i class="fa-solid fa-plus text-2xl"></i></button>
+        </div>
+
+        <div v-if="activeTab === 'expense'" class="space-y-6">
+            <div class="bg-muji-accent p-6 rounded-[2.5rem] text-white shadow-xl">
+                <p class="text-[10px] uppercase tracking-widest opacity-60">Total Cost</p>
+                <div class="text-3xl font-black my-1">¥ {{totalJPY.toLocaleString()}}</div>
+                <div class="text-sm opacity-80">≈ HK$ {{ (totalJPY * jpyRate).toFixed(2) }}</div>
+            </div>
+            
+            <div class="space-y-3">
+                <div v-for="(ex, idx) in expenses" @click="editItem('expense', ex, idx)" class="bg-white p-4 rounded-2xl border border-muji-line flex justify-between items-center shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-full bg-muji-bg flex items-center justify-center text-lg">{{getExIcon(ex.category)}}</span>
+                        <div><p class="text-sm font-bold">{{ex.name}}</p><p class="text-[10px] text-muji-sub">{{ex.date}} · {{ex.payer}}</p></div>
+                    </div>
+                    <p class="text-sm font-bold text-muji-accent">¥ {{ex.amount}}</p>
+                </div>
+            </div>
+            <button @click="openModal('expense')" class="fab"><i class="fa-solid fa-plus text-2xl"></i></button>
+        </div>
 
     </main>
 
     <div v-if="modal.show" class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 modal-overlay" @click.self="modal.show = false">
-        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-6 space-y-4 animate-up shadow-2xl overflow-y-auto max-h-[90vh]">
-            <h3 class="text-lg font-bold text-center">{{ modal.isEdit ? '編輯' : '新增' }}{{ modal.type === 'shopping' ? '購物清單' : '花費' }}</h3>
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-6 space-y-4 animate-up shadow-2xl overflow-y-auto max-h-[85vh]">
+            <h3 class="text-lg font-bold text-center">編輯{{modal.title}}</h3>
             
-            <div v-if="modal.type === 'shopping'" class="space-y-4">
-                <input v-model="form.name" placeholder="商品名稱">
-                <div class="space-y-2">
-                    <label class="text-xs text-muji-sub">圖片</label>
-                    <div v-if="form.image" class="relative w-full h-40 rounded-xl overflow-hidden border">
-                        <img :src="form.image" class="w-full h-full object-cover">
-                        <button @click="form.image = ''" class="absolute top-2 right-2 bg-black/50 text-white w-6 h-6 rounded-full">✕</button>
-                    </div>
-                    <div v-else @click="triggerPhoto" class="w-full h-40 rounded-xl border-2 border-dashed border-muji-line flex flex-col items-center justify-center text-muji-sub bg-muji-bg">
-                        <i class="fa-solid fa-camera text-2xl mb-1"></i>
-                        <span class="text-[10px]">點擊拍照或上傳</span>
-                    </div>
-                    <input type="file" id="photoInput" class="hidden" accept="image/*" @change="handlePhoto">
-                </div>
-            </div>
-
-            <div v-if="modal.type === 'expense'" class="space-y-3">
-                <select v-model="form.category">
-                    <option>交通</option><option>飲食</option><option>住宿</option><option>門票</option><option>購物</option><option>其他</option>
-                </select>
-                <input v-model="form.name" placeholder="項目名稱 (例如: 一蘭拉麵)">
-                <input v-model="form.date" type="date">
-                <input v-model.number="form.amount" type="number" placeholder="金額 (日幣)">
-                <div class="grid grid-cols-2 gap-2">
-                    <select v-model="form.payMethod">
-                        <option>現金</option><option>信用卡</option><option>電子支付</option>
-                    </select>
-                    <select v-model="form.payer">
-                        <option disabled value="">付款人</option>
-                        <option v-for="p in travelers" :value="p">{{p}}</option>
-                    </select>
-                </div>
-                <div class="space-y-1">
-                    <label class="text-[10px] text-muji-sub">分攤對象</label>
+            <div class="space-y-3">
+                <template v-if="modal.type === 'schedule'">
+                    <select v-model="form.category"><option>景點</option><option>住宿</option><option>美食</option><option>購物</option></select>
+                    <input v-model="form.name" placeholder="名稱">
+                    <input v-model="form.hours" placeholder="營業時間">
+                    <input v-model="form.ticket" placeholder="門票金額">
                     <div class="flex gap-2">
-                        <label v-for="p in travelers" :key="p" class="flex items-center gap-1 text-xs">
-                            <input type="checkbox" :value="p" v-model="form.splitWith"> {{p}}
-                        </label>
+                        <select v-model="form.transport" class="flex-1"><option value="walk">步行</option><option value="car">開車</option><option value="transit">大眾運輸</option></select>
+                        <input v-model="form.travelTime" placeholder="時間(m)" class="w-20">
                     </div>
-                </div>
-                <textarea v-model="form.note" placeholder="備註..." rows="2"></textarea>
+                </template>
+
+                <template v-if="modal.type === 'expense'">
+                    <select v-model="form.category"><option>交通</option><option>飲食</option><option>住宿</option><option>購物</option><option>其他</option></select>
+                    <input v-model="form.name" placeholder="項目名稱">
+                    <input v-model.number="form.amount" type="number" placeholder="金額 (JPY)">
+                    <input v-model="form.date" type="date">
+                    <select v-model="form.payer"><option v-for="p in travelers" :value="p">{{p}}</option></select>
+                </template>
+
+                <template v-if="modal.type === 'shopping'">
+                    <input v-model="form.name" placeholder="想買什麼？">
+                    <input type="file" @change="handleImage" class="text-xs">
+                </template>
+
+                <template v-if="modal.type === 'flight'">
+                    <div class="grid grid-cols-2 gap-2"><input v-model="form.from" placeholder="From"><input v-model="form.to" placeholder="To"></div>
+                    <div class="grid grid-cols-2 gap-2"><input v-model="form.depTime" placeholder="Dep"><input v-model="form.arrTime" placeholder="Arr"></div>
+                    <input v-model="form.code" placeholder="Flight No (CX580)">
+                </template>
+
+                <template v-if="modal.type === 'hotel'">
+                    <input v-model="form.name" placeholder="飯店名稱">
+                    <input v-model="form.address" placeholder="地址">
+                    <div class="grid grid-cols-2 gap-2"><input v-model="form.checkin" placeholder="Check-in"><input v-model="form.checkout" placeholder="Check-out"></div>
+                </template>
             </div>
 
-            <div class="flex gap-3 pt-4">
-                <button v-if="modal.isEdit" @click="deleteCurrentItem" class="flex-1 py-4 rounded-2xl bg-red-50 text-muji-red font-bold text-sm">刪除</button>
-                <button @click="saveData" class="flex-[2] py-4 rounded-2xl bg-muji-accent text-white font-bold text-sm">儲存</button>
+            <div class="flex gap-3 pt-4 border-t border-muji-line">
+                <button v-if="modal.isEdit" @click="confirmDelete" class="flex-1 py-4 rounded-2xl bg-red-50 text-muji-red font-bold text-sm">刪除</button>
+                <button @click="saveData" class="flex-[2] py-4 rounded-2xl bg-muji-accent text-white font-bold text-sm">儲存資料</button>
             </div>
         </div>
     </div>
@@ -157,151 +215,144 @@
 </div>
 
 <script>
-const { createApp, ref, computed, onMounted, watch } = Vue;
+const { createApp, ref, computed, onMounted, watch, nextTick } = Vue;
 
 createApp({
     setup() {
-        const activeTab = ref('expense');
-        const jpyRate = ref(0.051); 
-        const travelers = ref(['我', '旅伴A', '旅伴B']); // 預設旅伴名單
+        const activeTab = ref('schedule');
+        const currentDay = ref(0);
+        const jpyRate = ref(0.051);
+        const travelers = ['我', '旅伴A', '旅伴B'];
 
-        // Data Storage
-        const shoppingList = ref([]);
-        const expenses = ref([]);
-        
-        const tabs = [
+        const mainTabs = [
             { id: 'schedule', name: '行程', icon: 'fa-solid fa-calendar-day' },
             { id: 'info', name: '資訊', icon: 'fa-solid fa-plane-departure' },
             { id: 'shopping', name: '購物', icon: 'fa-solid fa-bag-shopping' },
             { id: 'expense', name: '花費', icon: 'fa-solid fa-yen-sign' }
         ];
 
-        // Modal State
-        const modal = ref({ show: false, type: '', isEdit: false, index: null });
+        const days = [{date:'23', week:'FRI'}, {date:'24', week:'SAT'}, {date:'25', week:'SUN'}, {date:'26', week:'MON'}, {date:'27', week:'TUE'}];
+        
+        // App Data
+        const itineraries = ref({0:[], 1:[], 2:[], 3:[], 4:[]});
+        const flights = ref([]);
+        const hotels = ref([]);
+        const shoppingList = ref([]);
+        const expenses = ref([]);
+
+        // Modal Control
+        const modal = ref({ show: false, type: '', isEdit: false, index: null, title: '' });
         const form = ref({});
 
-        // --- Computed ---
-        const totalJPY = computed(() => expenses.value.reduce((sum, item) => sum + (item.amount || 0), 0));
+        const totalJPY = computed(() => expenses.value.reduce((s, i) => s + (i.amount || 0), 0));
 
-        const settlements = computed(() => {
-            if (!expenses.value.length) return [];
-            const balances = {};
-            travelers.value.forEach(p => balances[p] = 0);
-
-            expenses.value.forEach(ex => {
-                const amount = ex.amount || 0;
-                const payPerPerson = amount / (ex.splitWith?.length || 1);
-                // 付款人先收回錢
-                balances[ex.payer] += amount;
-                // 分攤對象扣錢
-                ex.splitWith.forEach(p => balances[p] -= payPerPerson);
-            });
-
-            const results = [];
-            const creditors = [], debtors = [];
-            for (let p in balances) {
-                if (balances[p] > 1) creditors.push({ name: p, amt: balances[p] });
-                else if (balances[p] < -1) debtors.push({ name: p, amt: Math.abs(balances[p]) });
-            }
-
-            debtors.forEach(d => {
-                creditors.forEach(c => {
-                    const pay = Math.min(d.amt, c.amt);
-                    if (pay > 0) {
-                        results.push({ from: d.name, to: c.name, amount: Math.floor(pay) });
-                        d.amt -= pay; c.amt -= pay;
-                    }
-                });
-            });
-            return results;
-        });
-
-        // --- Methods ---
-        const openModal = (type) => {
-            modal.value = { show: true, type, isEdit: false, index: null };
-            if (type === 'shopping') form.value = { name: '', image: '' };
-            if (type === 'expense') {
-                form.value = {
-                    category: '飲食', name: '', amount: null, payMethod: '現金', 
-                    date: new Date().toISOString().split('T')[0], 
-                    payer: '我', splitWith: [...travelers.value], note: ''
-                };
-            }
+        // Methods
+        const openGoogleMap = (query) => {
+            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query + ' 北海道')}`, '_blank');
         };
 
-        const editExpense = (idx) => {
-            modal.value = { show: true, type: 'expense', isEdit: true, index: idx };
-            form.value = { ...expenses.value[idx] };
+        const getTransportIcon = (t) => {
+            if(t === 'car') return 'fa-solid fa-car';
+            if(t === 'transit') return 'fa-solid fa-bus-simple';
+            return 'fa-solid fa-person-walking';
+        };
+
+        const getExIcon = (cat) => {
+            const m = {'交通':'🚗', '飲食':'🍜', '住宿':'🏨', '購物':'🛍️', '其他':'💰'};
+            return m[cat] || '💸';
+        };
+
+        const addItem = (type) => {
+            modal.value = { show: true, type, isEdit: false, index: null, title: type };
+            if(type === 'schedule') form.value = { id: Date.now(), category: '景點', transport: 'car', travelTime: 20 };
+            else if(type === 'expense') form.value = { category: '飲食', date: new Date().toISOString().split('T')[0], payer: '我' };
+            else form.value = {};
+        };
+
+        const editItem = (type, data, idx) => {
+            modal.value = { show: true, type, isEdit: true, index: idx, title: type };
+            form.value = { ...data };
         };
 
         const saveData = () => {
-            if (modal.value.type === 'shopping') {
-                if (modal.value.isEdit) shoppingList.value[modal.value.index] = { ...form.value };
-                else shoppingList.value.push({ ...form.value });
-            } else {
-                if (modal.value.isEdit) expenses.value[modal.value.index] = { ...form.value };
-                else expenses.value.push({ ...form.value });
-            }
+            const type = modal.value.type;
+            let target = null;
+            if(type === 'schedule') target = itineraries.value[currentDay.value];
+            if(type === 'flight') target = flights.value;
+            if(type === 'hotel') target = hotels.value;
+            if(type === 'shopping') target = shoppingList.value;
+            if(type === 'expense') target = expenses.value;
+
+            if(modal.value.isEdit) target[modal.value.index] = { ...form.value };
+            else target.push({ ...form.value });
+            
             modal.value.show = false;
         };
 
-        const deleteCurrentItem = () => {
-            if (confirm('確定刪除？')) {
-                const target = modal.value.type === 'shopping' ? shoppingList : expenses;
-                target.value.splice(modal.value.index, 1);
+        const confirmDelete = () => {
+            if(confirm('確定刪除此項目？')){
+                const type = modal.value.type;
+                if(type === 'schedule') itineraries.value[currentDay.value].splice(modal.value.index, 1);
+                if(type === 'flight') flights.value.splice(modal.value.index, 1);
+                if(type === 'hotel') hotels.value.splice(modal.value.index, 1);
+                if(type === 'expense') expenses.value.splice(modal.value.index, 1);
                 modal.value.show = false;
             }
         };
 
-        const deleteShopping = (idx) => {
-            if(confirm('刪除這項商品？')) shoppingList.value.splice(idx, 1);
+        const deleteShopping = (idx) => shoppingList.value.splice(idx, 1);
+
+        const handleImage = (e) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => form.value.image = ev.target.result;
+            reader.readAsDataURL(e.target.files[0]);
         };
 
-        const triggerPhoto = () => document.getElementById('photoInput').click();
-        const handlePhoto = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => form.value.image = event.target.result;
-                reader.readAsDataURL(file);
-            }
+        const initSortable = () => {
+            const el = document.getElementById('itinerary-list');
+            if(el) Sortable.create(el, {
+                animation: 150, ghostClass: 'sortable-ghost',
+                onEnd: (e) => {
+                    const list = itineraries.value[currentDay.value];
+                    const item = list.splice(e.oldIndex, 1)[0];
+                    list.splice(e.newIndex, 0, item);
+                }
+            });
         };
 
-        const getCatIcon = (cat) => {
-            const icons = { '交通': '🚗', '飲食': '🍜', '住宿': '🏨', '門票': '🎫', '購物': '🛍️', '其他': '💰' };
-            return icons[cat] || '💸';
-        };
-
-        // --- Local Storage ---
-        const saveAll = () => {
-            localStorage.setItem('hokkaido_v4_data', JSON.stringify({
-                shopping: shoppingList.value,
-                expenses: expenses.value
-            }));
-        };
-
+        // Persistence & Initialization
         onMounted(async () => {
-            const saved = localStorage.getItem('hokkaido_v4_data');
-            if (saved) {
+            const saved = localStorage.getItem('hokkaido_pro_data');
+            if(saved) {
                 const p = JSON.parse(saved);
-                shoppingList.value = p.shopping || [];
+                itineraries.value = p.itineraries || itineraries.value;
+                flights.value = p.flights || [];
+                hotels.value = p.hotels || [];
+                shoppingList.value = p.shoppingList || [];
                 expenses.value = p.expenses || [];
             }
-            // Fetch Rate
+            initSortable();
             try {
                 const res = await fetch('https://open.er-api.com/v6/latest/JPY');
-                const data = await res.json();
-                jpyRate.value = data.rates.HKD;
+                const d = await res.json();
+                jpyRate.value = d.rates.HKD;
             } catch(e) {}
         });
 
-        watch([shoppingList, expenses], () => saveAll(), { deep: true });
+        watch([itineraries, flights, hotels, shoppingList, expenses], () => {
+            localStorage.setItem('hokkaido_pro_data', JSON.stringify({
+                itineraries: itineraries.value, flights: flights.value,
+                hotels: hotels.value, shoppingList: shoppingList.value, expenses: expenses.value
+            }));
+        }, { deep: true });
+
+        watch([activeTab, currentDay], () => {
+            if(activeTab.value === 'schedule') nextTick(() => initSortable());
+        });
 
         return {
-            activeTab, tabs, shoppingList, expenses, totalJPY, jpyRate, settlements,
-            modal, form, travelers,
-            openModal, editExpense, saveData, deleteCurrentItem, deleteShopping,
-            triggerPhoto, handlePhoto, getCatIcon
+            activeTab, mainTabs, days, currentDay, itineraries, flights, hotels, shoppingList, expenses, totalJPY, jpyRate, travelers,
+            modal, form, openGoogleMap, getTransportIcon, getExIcon, addItem, editItem, saveData, confirmDelete, deleteShopping, handleImage
         };
     }
 }).mount('#app');
